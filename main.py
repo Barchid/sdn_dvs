@@ -69,6 +69,9 @@ def main():
         count_log=True,
         lam=lam
     )
+    
+    train_len = len(train_loader)
+    val_len = len(val_loader)
 
     for epoch in range(args.epochs):
         if epoch in steps:
@@ -87,7 +90,7 @@ def main():
                 ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
                 
                 assistant.train(input, ground_truth)
-                print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
+                print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats} {i}/{train_len}', end='')
 
 
         for i, (input, ground_truth) in enumerate(val_loader):  # testing loop
@@ -102,7 +105,7 @@ def main():
             ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
             
             assistant.test(input, ground_truth)
-            print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
+            print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats} {i}/{val_len}', end='')
 
         if epoch % 50 == 49:
             print()
