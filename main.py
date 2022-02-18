@@ -83,6 +83,7 @@ def main():
                 
                 # BTCHW to BCHWT
                 input = input.permute(0, 2, 3, 4, 1)
+                ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
                 ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
                 
                 assistant.train(input, ground_truth)
@@ -97,6 +98,7 @@ def main():
                 input = apply_noise(input, args.noise, args.severity)
             
             input = input.permute(0, 2, 3, 4, 1)
+            ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
             ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
             
             assistant.test(input, ground_truth)
