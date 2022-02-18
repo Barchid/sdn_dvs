@@ -90,6 +90,9 @@ def main():
             print()
         if stats.testing.best_loss:
             torch.save(net.state_dict(), trained_folder + f'/network_ep{epoch}_best.pt')
+            
+        if stats.testing.best_accuracy:
+            torch.save(net.state_dict(), trained_folder + '/BEST_network.pt')
         stats.update()
         stats.save(trained_folder + '/')
 
