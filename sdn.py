@@ -20,7 +20,7 @@ def event_rate_loss(x, max_rate=0.01):
 
 
 class SDN(torch.nn.Module):
-    def __init__(self, num_classes: int, n_bins: int, dataset: str = "n-mnist"):
+    def __init__(self, in_channels: int, dataset: str = "n-mnist"):
         super(SDN, self).__init__()
         
         sdnn_params = { # sigma-delta neuron parameters
@@ -42,119 +42,124 @@ class SDN(torch.nn.Module):
         
         
         if dataset == 'n-mnist':
-            self.blocks = self._nmnist_architecture(sdnn_params, sdnn_cnn_params, sdnn_dense_params, n_bins)
+            self.blocks = self._nmnist_architecture(sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels)
+        elif dataset == 'cifar10-dvs':
+            self.blocks = self._cifar10dvs_architecture(sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels)
             
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                # delta encoding of the input
-                slayer.block.sigma_delta.Input(sdnn_params), 
-                # convolution layers
-                slayer.block.sigma_delta.Conv(sdnn_cnn_params,  3, 24, 3, padding=0, stride=2, weight_scale=2, weight_norm=True),
-                slayer.block.sigma_delta.Conv(sdnn_cnn_params, 24, 36, 3, padding=0, stride=2, weight_scale=2, weight_norm=True),
-                slayer.block.sigma_delta.Conv(sdnn_cnn_params, 36, 64, 3, padding=(1, 0), stride=(2, 1), weight_scale=2, weight_norm=True),
-                slayer.block.sigma_delta.Conv(sdnn_cnn_params, 64, 64, 3, padding=0, stride=1, weight_scale=2, weight_norm=True),
-                # flatten layer
-                slayer.block.sigma_delta.Flatten(),
-                # dense layers
-                slayer.block.sigma_delta.Dense(sdnn_dense_params, 64*40, 100, weight_scale=2, weight_norm=True),
-                slayer.block.sigma_delta.Dense(sdnn_dense_params,   100,  50, weight_scale=2, weight_norm=True),
-                slayer.block.sigma_delta.Dense(sdnn_dense_params,    50,  10, weight_scale=2, weight_norm=True),
-                # linear readout with sigma decoding of output
-                slayer.block.sigma_delta.Output(sdnn_dense_params,   10,   1, weight_scale=2, weight_norm=True)
-            ])
+        else:
+            self.blocks = self._dvsgesture_architecture(sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels)
+            
+        # self.blocks = torch.nn.ModuleList([# sequential network blocks 
+        #         # delta encoding of the input
+        #         slayer.block.sigma_delta.Input(sdnn_params), 
+        #         # convolution layers
+        #         slayer.block.sigma_delta.Conv(sdnn_cnn_params,  3, 24, 3, padding=0, stride=2, weight_scale=2, weight_norm=True),
+        #         slayer.block.sigma_delta.Conv(sdnn_cnn_params, 24, 36, 3, padding=0, stride=2, weight_scale=2, weight_norm=True),
+        #         slayer.block.sigma_delta.Conv(sdnn_cnn_params, 36, 64, 3, padding=(1, 0), stride=(2, 1), weight_scale=2, weight_norm=True),
+        #         slayer.block.sigma_delta.Conv(sdnn_cnn_params, 64, 64, 3, padding=0, stride=1, weight_scale=2, weight_norm=True),
+        #         # flatten layer
+        #         slayer.block.sigma_delta.Flatten(),
+        #         # dense layers
+        #         slayer.block.sigma_delta.Dense(sdnn_dense_params, 64*40, 100, weight_scale=2, weight_norm=True),
+        #         slayer.block.sigma_delta.Dense(sdnn_dense_params,   100,  50, weight_scale=2, weight_norm=True),
+        #         slayer.block.sigma_delta.Dense(sdnn_dense_params,    50,  10, weight_scale=2, weight_norm=True),
+        #         # linear readout with sigma decoding of output
+        #         slayer.block.sigma_delta.Output(sdnn_dense_params,   10,   1, weight_scale=2, weight_norm=True)
+        #     ])
         
-    def _nmnist_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, n_bins):
+    def _nmnist_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels):
         return torch.nn.ModuleList([
             # delta encoding of the input
             slayer.block.sigma_delta.Input(sdnn_params),
             
             # conv + pool
             # 1st block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, in_channels, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 2nd block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # flatten layer
             slayer.block.sigma_delta.Flatten(),
             
             # FC
-            slayer.block.sigma_delta.Dense(sdnn_dense_params, 64*40, 100, weight_scale=2, weight_norm=True),
-            slayer.block.sigma_delta.Dense(sdnn_dense_params,   100,  50, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params, 10368, 10368//4, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params,   10368//4,  100, weight_scale=2, weight_norm=True),
             
             # linear readout with sigma decoding of output
-            slayer.block.sigma_delta.Output(sdnn_dense_params,   50,   10, weight_scale=2, weight_norm=True)
+            slayer.block.sigma_delta.Output(sdnn_dense_params,   100,   10, weight_scale=2, weight_norm=True)
         ])
         
-    def _cifar10dvs_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, n_bins):
+    def _cifar10dvs_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels):
         return torch.nn.ModuleList([
             # delta encoding of the input
             slayer.block.sigma_delta.Input(sdnn_params),
             
             # conv + pool
             # 1st block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 256, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, in_channels, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 2nd block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 256, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 3d
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 256, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 4th
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 256, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # flatten layer
             slayer.block.sigma_delta.Flatten(),
             
             # FC
-            slayer.block.sigma_delta.Dense(sdnn_dense_params, 64*40, 100, weight_scale=2, weight_norm=True),
-            slayer.block.sigma_delta.Dense(sdnn_dense_params,   100,  50, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params, 8192, 8192//4, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params,   8192//4,  100, weight_scale=2, weight_norm=True),
             
             # linear readout with sigma decoding of output
-            slayer.block.sigma_delta.Output(sdnn_dense_params,   50,   10, weight_scale=2, weight_norm=True)
+            slayer.block.sigma_delta.Output(sdnn_dense_params,   100,   10, weight_scale=2, weight_norm=True)
         ])
         
-    def _dvsgesture_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, n_bins):
+    def _dvsgesture_architecture(self, sdnn_params, sdnn_cnn_params, sdnn_dense_params, in_channels):
         return torch.nn.ModuleList([
             # delta encoding of the input
             slayer.block.sigma_delta.Input(sdnn_params),
             
             # conv + pool
             # 1st block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, in_channels, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 2nd block
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 3d
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 4th
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # 5th
-            slayer.block.sigma_delta.Conv(sdnn_cnn_params, n_bins, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Conv(sdnn_cnn_params, 128, 128, 3, padding=1, stride=1, weight_scale=2, weight_norm=True),
             slayer.block.sigma_delta.Pool(sdnn_cnn_params, 2, stride=2, weight_scale=2, weight_norm=True),
             
             # flatten layer
             slayer.block.sigma_delta.Flatten(),
             
             # FC
-            slayer.block.sigma_delta.Dense(sdnn_dense_params, 64*40, 100, weight_scale=2, weight_norm=True),
-            slayer.block.sigma_delta.Dense(sdnn_dense_params,   100,  50, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params, 2048, 2048//4, weight_scale=2, weight_norm=True),
+            slayer.block.sigma_delta.Dense(sdnn_dense_params,   2048//4,  100, weight_scale=2, weight_norm=True),
             
             # linear readout with sigma decoding of output
-            slayer.block.sigma_delta.Output(sdnn_dense_params,   50,   10, weight_scale=2, weight_norm=True)
+            slayer.block.sigma_delta.Output(sdnn_dense_params,   100,   11, weight_scale=2, weight_norm=True)
         ])
         
     
@@ -165,9 +170,10 @@ class SDN(torch.nn.Module):
         for block in self.blocks: 
             # forward computation is as simple as calling the blocks in a loop
             x = block(x)
+            
             if hasattr(block, 'neuron'):
                 event_cost += event_rate_loss(x)
-                count.append(torch.sum(torch.abs((x[..., 1:]) > 0).to(x.dtype)).item())
+                count.append(torch.sum(torch.abs((x[..., 1:] > 0).to(x.dtype))).item())
 
         return x, event_cost, torch.FloatTensor(count).reshape((1, -1)).to(x.device)
 
