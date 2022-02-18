@@ -119,7 +119,7 @@ def main():
             )}, logs_folder + f'/checkpoint{epoch}.pt')
 
     file = open("report.txt", 'a')
-    file.write(f"SDN {args.dataset} binarize={args.binarize} {args.batch_size} {args.lr} {stats.testing.max_accuracy}\n")
+    file.write(f"SDN {args.experiment} {args.dataset} binarize={args.binarize} {args.batch_size} {args.lr} {stats.testing.max_accuracy}\n")
     file.close()
 
 if __name__ == "__main__":
