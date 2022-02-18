@@ -62,12 +62,12 @@ def main():
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
         net=net,
-        error=lambda output, target: F.mse_loss(
-            output.flatten(), target.flatten()),
+        error=slayer.loss.SpikeMax().to(device),
         optimizer=optimizer,
         stats=stats,
         count_log=True,
-        lam=lam
+        lam=lam,
+        classifier=slayer.classifier.Rate.predict
     )
     
     train_len = len(train_loader)
@@ -86,8 +86,8 @@ def main():
                 
                 # BTCHW to BCHWT
                 input = input.permute(0, 2, 3, 4, 1)
-                ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
-                ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
+                # ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
+                # ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
                 
                 assistant.train(input, ground_truth)
                 print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats} {i}/{train_len}', end='')
@@ -101,8 +101,8 @@ def main():
                 input = apply_noise(input, args.noise, args.severity)
             
             input = input.permute(0, 2, 3, 4, 1)
-            ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
-            ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
+            # ground_truth = torch.eye(num_classes)[ground_truth] # one hot encoding
+            # ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
             
             assistant.test(input, ground_truth)
             print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats} {i}/{val_len}', end='')
