@@ -78,8 +78,11 @@ def main():
 
         if not args.validate:    
             for i, (input, ground_truth) in enumerate(train_loader):  # training loop
+                if not args.binarize:
+                    input = normalize_event_frames(input)
+                
                 # BTCHW to BCHWT
-                input = input.permute(0, 2, 3, 1)
+                input = input.permute(0, 2, 3, 4, 1)
                 ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
                 
                 assistant.train(input, ground_truth)
@@ -93,7 +96,7 @@ def main():
             if args.noise is not None:
                 input = apply_noise(input, args.noise, args.severity)
             
-            input = input.permute(0, 2, 3, 1)
+            input = input.permute(0, 2, 3, 4, 1)
             ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
             
             assistant.test(input, ground_truth)
