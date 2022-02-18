@@ -16,11 +16,6 @@ import lava.lib.dl.slayer as slayer
 from sdn import SDN
 from utils import apply_noise, normalize_event_frames
 
-trained_folder = 'experiments'
-logs_folder = 'Logs'
-os.makedirs(trained_folder, exist_ok=True)
-os.makedirs(logs_folder, exist_ok=True)
-
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
@@ -50,6 +45,11 @@ steps = [120, 240, 320]  # learning rate reduction milestones
 
 def main():
     args = get_args()
+    
+    trained_folder = f'experiments/{args.experiment}'
+    logs_folder = f'{trained_folder}/Logs'
+    os.makedirs(trained_folder, exist_ok=True)
+    os.makedirs(logs_folder, exist_ok=True)
 
     optimizer = torch.optim.Adam(
         net.parameters(), lr=args.lr, weight_decay=1e-5)
