@@ -118,3 +118,6 @@ def main():
             torch.save({'net': net.state_dict(), 'optimizer': optimizer.state_dict(
             )}, logs_folder + f'/checkpoint{epoch}.pt')
 
+
+if __name__ == "__main__":
+    main()
