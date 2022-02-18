@@ -10,6 +10,10 @@ import numpy as np
 from cifar10dvs import CIFAR10DVS
 
 
+def binar(x):
+    return (x > 0).astype(np.float32)
+
+
 def get_dataloaders(batch_size: int, n_bins: int, dataset: str = "nmnist", data_dir: str = "data", binarize: bool = False):
     # create the directory if not exist
     os.makedirs(data_dir, exist_ok=True)
@@ -28,10 +32,8 @@ def get_dataloaders(batch_size: int, n_bins: int, dataset: str = "nmnist", data_
     ]
 
     if binarize:
-        train_transfs.append(transforms.Lambda(
-            lambda x: (x > 0).astype(np.float32)))
-        val_transfs.append(transforms.Lambda(
-            lambda x: (x > 0).astype(np.float32)))
+        train_transfs.append(transforms.Lambda(binar))
+        val_transfs.append(transforms.Lambda(binar))
 
     train_transform = transforms.Compose(train_transfs)
     val_transform = transforms.Compose(val_transfs)
