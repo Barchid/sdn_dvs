@@ -1,20 +1,6 @@
-import os
-from typing import Optional
 import numpy as np
 
-from tonic.io import read_mnist_file
-from tonic.dataset import Dataset
-from tonic.download_utils import extract_archive
 from tonic import functional as TF
-import torch.nn.functional as F
-import torch
-from torch.utils.data import random_split
-import cv2
-import random
-import matplotlib.pyplot as plt
-import pytorch_lightning as pl
-from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms
 
 
 def hot_pixels(frames: np.array, severity: int):
