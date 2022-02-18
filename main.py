@@ -51,14 +51,13 @@ def main():
     os.makedirs(trained_folder, exist_ok=True)
     os.makedirs(logs_folder, exist_ok=True)
 
-    optimizer = torch.optim.Adam(
-        net.parameters(), lr=args.lr, weight_decay=1e-5)
-
     # Datasets
     train_loader, val_loader, num_classes = get_dataloaders(
         args.batch_size, args.n_bins, args.dataset, 'data', args.binarize)
 
     net = SDN(in_channels=2).to(device)
+    optimizer = torch.optim.Adam(
+        net.parameters(), lr=args.lr, weight_decay=1e-5)
 
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
