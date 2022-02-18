@@ -23,7 +23,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--lr', default=0.001, type=float)
-    parser.add_argument('--epochs', default=300, type=int)
+    parser.add_argument('--epochs', default=400, type=int)
     parser.add_argument('--experiment', type=str, required=True)
     parser.add_argument('--dataset', type=str,
                         choices=['n-mnist', 'cifar10-dvs', 'dvsgesture'])
