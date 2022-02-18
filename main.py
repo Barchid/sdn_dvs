@@ -118,6 +118,9 @@ def main():
             torch.save({'net': net.state_dict(), 'optimizer': optimizer.state_dict(
             )}, logs_folder + f'/checkpoint{epoch}.pt')
 
+    file = open("report.txt", 'a')
+    file.write(f"SDN {args.dataset} binarize={args.binarize} {args.batch_size} {args.lr} {stats.testing.max_accuracy}\n")
+    file.close()
 
 if __name__ == "__main__":
     main()
