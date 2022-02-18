@@ -40,9 +40,9 @@ def get_dataloaders(batch_size: int, n_bins: int, dataset: str = "nmnist", data_
         dataset, train_transform, val_transform, data_dir)
 
     train_loader = DataLoader(
-        train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=0)
+        train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=7)
     val_loader = DataLoader(val_set, batch_size=batch_size,
-                            shuffle=True, drop_last=True, num_workers=0)
+                            shuffle=True, drop_last=True, num_workers=7)
 
     return train_loader, val_loader, num_classes
 
