@@ -14,6 +14,7 @@ from datasets import get_dataloaders
 import einops
 import lava.lib.dl.slayer as slayer
 from sdn import SDN
+from utils import apply_noise, normalize_event_frames
 
 trained_folder = 'experiments'
 logs_folder = 'Logs'
@@ -33,7 +34,9 @@ def get_args():
                         choices=['n-mnist', 'cifar10-dvs', 'dvsgesture'])
     parser.add_argument('--binarize', action='store_true')
     parser.add_argument('--n_bins', default=5, type=int)
-
+    parser.add_argument('--validate', action='store_true')
+    parser.add_argument('--noise', type=str, choices=[None, 'background', 'hot'], default=None)
+    parser.add_argument('--severity', type=int, choices=[1, 2, 3, 4, 5], default=1)
     args = parser.parse_args()
     return args
 
@@ -74,15 +77,26 @@ def main():
                 print('\nLearning rate reduction from', param_group['lr'])
                 param_group['lr'] /= 10/3
 
-        for i, (input, ground_truth) in enumerate(train_loader):  # training loop
-            # BTCHW to BCHWT
+        if not args.validate:    
+            for i, (input, ground_truth) in enumerate(train_loader):  # training loop
+                # BTCHW to BCHWT
+                input = input.permute(0, 2, 3, 1)
+                ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
+                
+                assistant.train(input, ground_truth)
+                print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
+
+
+        for i, (input, ground_truth) in enumerate(val_loader):  # testing loop
+            if not args.binarize:
+                input = normalize_event_frames(input)
+            
+            if args.noise is not None:
+                input = apply_noise(input, args.noise, args.severity)
+            
             input = input.permute(0, 2, 3, 1)
             ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
             
-            assistant.train(input, ground_truth)
-            print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
-
-        for i, (input, ground_truth) in enumerate(val_loader):  # testing loop
             assistant.test(input, ground_truth)
             print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
 
