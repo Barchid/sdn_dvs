@@ -62,7 +62,7 @@ def main():
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
         net=net,
-        error=slayer.loss.SpikeMax().to(device),
+        error=slayer.loss.SpikeMax(mode="logsoftmax").to(device),
         optimizer=optimizer,
         stats=stats,
         count_log=True,
