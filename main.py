@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.nn.functional as F
 from datasets import get_dataloaders
-
+import einops
 import lava.lib.dl.slayer as slayer
 from sdn import SDN
 
@@ -48,13 +48,14 @@ steps = [120, 240, 320]  # learning rate reduction milestones
 def main():
     args = get_args()
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(
+        net.parameters(), lr=args.lr, weight_decay=1e-5)
 
     # Datasets
     train_loader, val_loader, num_classes = get_dataloaders(
         args.batch_size, args.n_bins, args.dataset, 'data', args.binarize)
-    
-    net = SDN().to(device)
+
+    net = SDN(in_channels=2).to(device)
 
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
@@ -74,6 +75,10 @@ def main():
                 param_group['lr'] /= 10/3
 
         for i, (input, ground_truth) in enumerate(train_loader):  # training loop
+            # BTCHW to BCHWT
+            input = input.permute(0, 2, 3, 1)
+            ground_truth = einops.repeat(ground_truth, 'batch classes -> batch classes timesteps', timesteps=args.n_bins)
+            
             assistant.train(input, ground_truth)
             print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
 
@@ -84,7 +89,7 @@ def main():
         if epoch % 50 == 49:
             print()
         if stats.testing.best_loss:
-            torch.save(net.state_dict(), trained_folder + '/network.pt')
+            torch.save(net.state_dict(), trained_folder + f'/network_ep{epoch}_best.pt')
         stats.update()
         stats.save(trained_folder + '/')
 
@@ -95,3 +100,4 @@ def main():
         if epoch % 10 == 0:
             torch.save({'net': net.state_dict(), 'optimizer': optimizer.state_dict(
             )}, logs_folder + f'/checkpoint{epoch}.pt')
+
