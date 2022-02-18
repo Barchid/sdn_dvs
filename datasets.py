@@ -1,5 +1,4 @@
 from typing import Optional
-import pytorch_lightning as pl
 from torch.functional import split
 from torch.utils import data
 from torch.utils.data import random_split, DataLoader
